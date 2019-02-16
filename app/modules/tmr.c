@@ -358,6 +358,13 @@ static int tmr_time( lua_State* L ){
 	return 1; 
 }
 
+// Lua: tmr.monotonic() , return rtc time in us
+static int tmr_monotonic( lua_State* L ){
+	uint64_t us=rtc_timer_update(false);
+	lua_pushnumber(L, us);
+	return 1; 
+}
+
 // Lua: tmr.softwd( value )
 static int tmr_softwd( lua_State* L ){
 	soft_watchdog = luaL_checkinteger(L, 1);
@@ -403,6 +410,7 @@ static const LUA_REG_TYPE tmr_map[] = {
 	{ LSTRKEY( "wdclr" ),        LFUNCVAL( tmr_wdclr ) },
 	{ LSTRKEY( "softwd" ),       LFUNCVAL( tmr_softwd ) },
 	{ LSTRKEY( "time" ),         LFUNCVAL( tmr_time ) },
+	{ LSTRKEY( "monotonic" ),         LFUNCVAL( tmr_monotonic ) },
 	{ LSTRKEY( "register" ),     LFUNCVAL( tmr_register ) },
 	{ LSTRKEY( "alarm" ),        LFUNCVAL( tmr_alarm ) },
 	{ LSTRKEY( "start" ),        LFUNCVAL( tmr_start ) },
