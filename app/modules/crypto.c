@@ -1,5 +1,6 @@
 // Module for cryptography
-
+#include <stdint.h>
+#include <string.h>
 #include <c_errno.h>
 #include "module.h"
 #include "lauxlib.h"
@@ -402,6 +403,63 @@ static int lcrypto_decrypt (lua_State *L)
   return crypto_encdec (L, false);
 }
 
+#define DELTA 0x9e3779b9
+#define MX (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)))
+static void btea(uint32_t *v, int n, uint32_t const key[4]) {
+  uint32_t y, z, sum;
+  unsigned p, rounds, e;
+  if (n > 1) {          /* Coding Part */
+    rounds = 6 + 52/n;
+    sum = 0;
+    z = v[n-1];
+    do {
+      sum += DELTA;
+      e = (sum >> 2) & 3;
+      for (p=0; p<n-1; p++) {
+        y = v[p+1]; 
+        z = v[p] += MX;
+      }
+      y = v[0];
+      z = v[n-1] += MX;
+    } while (--rounds);
+  } else if (n < -1) {  /* Decoding Part */
+    n = -n;
+    rounds = 6 + 52/n;
+    sum = rounds*DELTA;
+    y = v[0];
+    do {
+      e = (sum >> 2) & 3;
+      for (p=n-1; p>0; p--) {
+        z = v[p-1];
+        y = v[p] -= MX;
+      }
+      z = v[n-1];
+      y = v[0] -= MX;
+      sum -= DELTA;
+    } while (--rounds);
+  }
+}
+
+static int crypto_xxtea(lua_State *L) {
+    size_t len_v, len_k;
+    const char *data = lua_tolstring (L, 1, &len_v);
+    int n = lua_tointeger(L, 2);
+    int n_abs = n;
+    if (n_abs < 0) n_abs = -n_abs;
+    const char *key = lua_tolstring (L, 3, &len_k);
+    if(len_v <= 0 || len_v > 512 || len_k != 16 || n_abs*4 != len_v) {
+        lua_pushstring (L, "");
+        lua_pushstring (L, "");
+        return 2;
+    }
+    char v[len_v];
+    mempcpy((void *)v, (void *)data, len_v);
+    btea((uint32_t *)v, n, (uint32_t *)key);
+    lua_pushlstring(L, v, len_v);
+    lua_pushnil(L);
+    return 2;
+}
+
 // Hash function map
 static const LUA_REG_TYPE crypto_hash_map[] = {
   { LSTRKEY( "update" ),  LFUNCVAL( crypto_hash_update ) },
@@ -425,6 +483,7 @@ static const LUA_REG_TYPE crypto_map[] = {
   { LSTRKEY( "new_hmac"   ),   LFUNCVAL( crypto_new_hmac ) },
   { LSTRKEY( "encrypt" ),  LFUNCVAL( lcrypto_encrypt ) },
   { LSTRKEY( "decrypt" ),  LFUNCVAL( lcrypto_decrypt ) },
+  { LSTRKEY( "xxtea" ),  LFUNCVAL( crypto_xxtea ) },
   { LNILKEY, LNILVAL }
 };
 
