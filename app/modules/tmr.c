@@ -365,6 +365,20 @@ static int tmr_monotonic( lua_State* L ){
 	return 1; 
 }
 
+// Lua: tmr.monotonic() , return rtc time in us
+static int tmr_mktime( lua_State* L ){
+    uint32_t year = luaL_optinteger(L, 1, 0);
+    uint32_t mon = luaL_optinteger(L, 2, 0);
+    uint32_t day = luaL_optinteger(L, 3, 0);
+
+    uint32_t hour = luaL_optinteger(L, 4, 0);
+    uint32_t min = luaL_optinteger(L, 5, 0);
+    uint32_t sec = luaL_optinteger(L, 6, 0);
+    uint64_t timestamp = system_mktime(year, mon, day, hour, min, sec);
+	lua_pushnumber(L, timestamp);
+	return 1; 
+}
+
 // Lua: tmr.softwd( value )
 static int tmr_softwd( lua_State* L ){
 	soft_watchdog = luaL_checkinteger(L, 1);
@@ -411,6 +425,7 @@ static const LUA_REG_TYPE tmr_map[] = {
 	{ LSTRKEY( "softwd" ),       LFUNCVAL( tmr_softwd ) },
 	{ LSTRKEY( "time" ),         LFUNCVAL( tmr_time ) },
 	{ LSTRKEY( "monotonic" ),         LFUNCVAL( tmr_monotonic ) },
+	{ LSTRKEY( "mktime" ),         LFUNCVAL( tmr_mktime ) },
 	{ LSTRKEY( "register" ),     LFUNCVAL( tmr_register ) },
 	{ LSTRKEY( "alarm" ),        LFUNCVAL( tmr_alarm ) },
 	{ LSTRKEY( "start" ),        LFUNCVAL( tmr_start ) },
